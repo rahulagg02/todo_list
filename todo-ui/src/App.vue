@@ -1,91 +1,95 @@
 <template>
-  <div style="padding:1.5rem; max-width:32rem; margin:0 auto; color:white;">
-    <!-- Title -->
-    <h1 style="text-align:left; margin-bottom:1rem; font-size:1.75rem; font-weight:bold;">
-      To-Do List
-    </h1>
+  <div class="wrapper">
+    <div class="card">
+      <!-- Title -->
+      <h1 class="title">To-Do List</h1>
 
-    <!-- Provider & Search -->
-    <div style="display:flex; gap:.5rem; margin-bottom:1rem;">
-      <select
-        v-model="providerKey"
-        style="padding:.5rem; border:1px solid #555; background:#222; color:white;"
-      >
-        <option value="InMemory">In-Memory</option>
-        <option value="EfCore">SQLite (EF Core)</option>
-      </select>
-
-      <input
-        v-model="searchTerm"
-        placeholder="Search tasks…"
-        style="flex:1; padding:.5rem; border:1px solid #555; background:#222; color:white;"
-      />
-    </div>
-
-    <!-- Add New To-Do -->
-    <div style="display:flex; gap:.5rem; margin-bottom:1.5rem;">
-      <input
-        v-model="newTitle"
-        @keyup.enter="addTodo"
-        placeholder="New task"
-        style="flex:1; padding:.5rem; border:1px solid #555; background:#222; color:white;"
-      />
-      <button
-        @click="addTodo"
-        style="padding:.5rem 1rem; background:#2563eb; color:white; border:none; border-radius:4px; cursor:pointer;"
-      >
-        Add
-      </button>
-    </div>
-
-    <!-- To-Do List -->
-    <transition-group
-      name="fade"
-      tag="div"
-      :css="!isSwitching"
-      style="margin:0; padding:0; width:100%;"
-    >
-      <div
-        v-for="todo in filteredTodos"
-        :key="todo.id"
-        style="display:flex; align-items:center; justify-content:flex-start; text-align: left; gap:.5rem; margin-bottom:.75rem; width:100%;"
-      >
-        <!-- Complete Checkbox -->
+      <!-- Provider & Search -->
+      <div class="controls">
+        <select v-model="providerKey" class="provider">
+          <option value="InMemory">In-Memory</option>
+          <option value="EfCore">SQLite</option>
+        </select>
         <input
-          type="checkbox"
-          v-model="todo.isComplete"
-          @change="completeAndRemove(todo)"
+          v-model="searchTerm"
+          placeholder="Search tasks…"
+          class="search"
         />
+      </div>
 
-        <!-- Inline Editing -->
-        <div v-if="editingIdMap[todo.id]" style="flex:1;">
+      <!-- Add New To-Do -->
+      <div class="controls">
+        <input
+          v-model="newTitle"
+          @keyup.enter="addTodo"
+          placeholder="New task"
+          class="search"
+        />
+        <button @click="addTodo" class="btn add-btn">Add</button>
+      </div>
+
+      <!-- Active To-Do List -->
+      <transition-group
+        name="fade"
+        tag="div"
+        :css="!isSwitching"
+        class="todo-list"
+      >
+        <div
+          v-for="todo in filteredTodos"
+          :key="todo.id"
+          class="todo-item"
+        >
+          <!-- Circular Checkbox -->
           <input
-            v-model="editTitleMap[todo.id]"
-            @keyup.enter="saveEdit(todo)"
-            @blur="saveEdit(todo)"
-            style="width:100%; padding:.25rem; border:1px solid #555; background:#222; color:white;"
+            type="checkbox"
+            v-model="todo.isComplete"
+            @change="completeAndRemove(todo)"
           />
+
+          <!-- Inline Editing -->
+          <div v-if="editingIdMap[todo.id]" class="edit-container">
+            <input
+              v-model="editTitleMap[todo.id]"
+              @keyup.enter="saveEdit(todo)"
+              @blur="saveEdit(todo)"
+              class="edit-input"
+            />
+          </div>
+          <div v-else class="title-container" @click="startEdit(todo)">
+            <span :class="{ completed: todo.isComplete }">
+              {{ todo.title }}
+            </span>
+          </div>
         </div>
-        <div v-else style="flex:1;">
-          <span
-            @click="startEdit(todo)"
-            style="cursor:pointer; display:block; width:100%;"
-            :style="{
-              textDecoration: todo.isComplete ? 'line-through' : 'none',
-              color: todo.isComplete ? '#888' : 'white'
-            }"
-          >
-            {{ todo.title }}
-          </span>
+      </transition-group>
+
+      <!-- Completed Tasks Toggle -->
+      <div class="completed-header" @click="showCompleted = !showCompleted">
+        <span>Completed Tasks ({{ completedTasks.length }})</span>
+        <span class="caret">{{ showCompleted ? '▲' : '▼' }}</span>
+      </div>
+
+      <!-- Completed Tasks Dropdown -->
+      <div v-show="showCompleted" class="completed-list">
+        <div
+          v-for="task in completedTasks"
+          :key="task.id"
+          class="completed-item"
+        >
+          <input type="checkbox" checked disabled />
+          <span class="completed-text">{{ task.title }}</span>
         </div>
       </div>
-    </transition-group>
+    </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
 import debounce from 'lodash.debounce'
+
+const API_BASE = 'http://localhost:5141/api/todos'
 
 export default {
   data() {
@@ -97,52 +101,67 @@ export default {
       searchTerm: '',
       editingIdMap: {},
       editTitleMap: {},
-      isSwitching: false,  // flag to disable transitions during provider switch
+      isSwitching: false,
+      // completed tasks per provider (persisted)
+      completedCache: { InMemory: [], EfCore: [] },
+      showCompleted: false
     }
   },
   computed: {
     filteredTodos() {
       const term = this.searchTerm.trim().toLowerCase()
-      if (!term) return this.todos
-      return this.todos.filter(t => t.title.toLowerCase().includes(term))
+      const active = this.todos.filter(t => !t.isComplete)
+      return term
+        ? active.filter(t => t.title.toLowerCase().includes(term))
+        : active
+    },
+    completedTasks() {
+      return this.completedCache[this.providerKey]
     }
   },
   async created() {
-    // prepare debounced fetch for search
+    // load completed lists from localStorage
+    ['InMemory','EfCore'].forEach(p => {
+      const stored = localStorage.getItem(`completed-${p}`)
+      if (stored) this.completedCache[p] = JSON.parse(stored)
+    })
+
+    // debounce for search
     this.debouncedFetch = debounce(this.fetchAndCache, 300)
 
-    // preload both provider caches
+    // preload both provider lists
     const [inM, ef] = await Promise.all([
-      axios.get('http://localhost:5141/api/todos', { headers: { 'X-Provider': 'InMemory' }}),
-      axios.get('http://localhost:5141/api/todos', { headers: { 'X-Provider': 'EfCore' }})
+      axios.get(API_BASE, { headers:{ 'X-Provider':'InMemory' }}),
+      axios.get(API_BASE, { headers:{ 'X-Provider':'EfCore' }})
     ])
     this.cache.InMemory = inM.data
     this.cache.EfCore   = ef.data
-
-    // initialize UI with the selected provider's cache
     this.todos = [...this.cache[this.providerKey]]
   },
   watch: {
     providerKey(newKey) {
-      // disable animation, swap instantly
       this.isSwitching = true
       this.todos = [...this.cache[newKey]]
-      // re-enable CSS next tick
-      this.$nextTick(() => { this.isSwitching = false })
-      // refresh in background
+      this.$nextTick(() => this.isSwitching = false)
+      this.showCompleted = false
       this.fetchAndCache(newKey)
     },
     searchTerm() {
-      // update filtering immediately, then fetch in background
       this.debouncedFetch(this.providerKey)
     }
   },
   methods: {
+    persistCompleted(provider) {
+      localStorage.setItem(
+        `completed-${provider}`,
+        JSON.stringify(this.completedCache[provider])
+      )
+    },
     async fetchAndCache(provider) {
       try {
-        const { data } = await axios.get('http://localhost:5141/api/todos', {
-          headers: { 'X-Provider': provider },
-          params: { search: this.searchTerm.trim().toLowerCase() }
+        const { data } = await axios.get(API_BASE, {
+          headers:{ 'X-Provider':provider },
+          params:{ search:this.searchTerm.trim().toLowerCase() }
         })
         this.cache[provider] = data
         if (provider === this.providerKey) {
@@ -156,9 +175,9 @@ export default {
       if (!this.newTitle.trim()) return
       try {
         const { data } = await axios.post(
-          'http://localhost:5141/api/todos',
-          { title: this.newTitle, isComplete: false },
-          { headers: { 'X-Provider': this.providerKey }}
+          API_BASE,
+          { title:this.newTitle, isComplete:false },
+          { headers:{ 'X-Provider':this.providerKey }}
         )
         this.cache[this.providerKey].push(data)
         this.todos.push(data)
@@ -168,44 +187,49 @@ export default {
       }
     },
     async completeAndRemove(todo) {
+      // add to completed list
+      this.completedCache[this.providerKey].push({ ...todo })
+      this.persistCompleted(this.providerKey)
+
       try {
         await axios.delete(
-          `http://localhost:5141/api/todos/${todo.id}`,
-          { headers: { 'X-Provider': this.providerKey }}
+          `${API_BASE}/${todo.id}`,
+          { headers:{ 'X-Provider':this.providerKey }}
         )
         setTimeout(() => {
           this.todos = this.todos.filter(t => t.id !== todo.id)
-          this.cache[this.providerKey] = this.cache[this.providerKey].filter(t => t.id !== todo.id)
+          this.cache[this.providerKey] =
+            this.cache[this.providerKey].filter(t => t.id !== todo.id)
         }, 1000)
       } catch (e) {
         console.error(e)
       }
     },
     startEdit(todo) {
-      this.editingIdMap[todo.id] = true
-      this.editTitleMap[todo.id] = todo.title
+      this.$set(this.editingIdMap, todo.id, true)
+      this.$set(this.editTitleMap, todo.id, todo.title)
     },
     async saveEdit(todo) {
       const newTitle = (this.editTitleMap[todo.id]||'').trim()
       if (!newTitle) {
-        delete this.editingIdMap[todo.id]
+        this.$delete(this.editingIdMap, todo.id)
         return
       }
       todo.title = newTitle
       try {
         await axios.put(
-          `http://localhost:5141/api/todos/${todo.id}`,
+          `${API_BASE}/${todo.id}`,
           todo,
-          { headers: { 'X-Provider': this.providerKey }}
+          { headers:{ 'X-Provider':this.providerKey }}
         )
         const list = this.cache[this.providerKey]
-        const idx  = list.findIndex(t => t.id === todo.id)
-        if (idx >= 0) list[idx].title = newTitle
+        const idx  = list.findIndex(t=>t.id===todo.id)
+        if(idx>=0) list[idx].title=newTitle
       } catch (e) {
         console.error(e)
       } finally {
-        delete this.editingIdMap[todo.id]
-        delete this.editTitleMap[todo.id]
+        this.$delete(this.editingIdMap, todo.id)
+        this.$delete(this.editTitleMap, todo.id)
       }
     }
   }
@@ -213,12 +237,108 @@ export default {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 1s;
+/* Background w/ dark overlay */
+.wrapper {
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  background:
+    linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+    url('/bg.jpg') no-repeat center center;
+  background-size: cover;
+  display:flex; align-items:center; justify-content:center;
 }
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+
+/* White card */
+.card {
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width:100%; max-width:32rem;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
 }
+
+/* Header */
+.title {
+  margin-bottom:1rem;
+  font-size:1.75rem;
+  font-weight:bold;
+  color:#222;
+}
+
+/* Controls */
+.controls {
+  display:flex; gap:.5rem; margin-bottom:1rem;
+}
+.provider, .search {
+  flex:1;
+  padding:.5rem;
+  border-radius:4px;
+  border:1px solid #aaa;
+  background:#fff; color:#222;
+}
+
+/* Add button */
+.btn.add-btn {
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  padding:.5rem 1rem;
+  border-radius:4px;
+  cursor:pointer;
+}
+
+/* Todo items */
+.todo-list .todo-item {
+  display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem;
+}
+/* Circular checkbox */
+.todo-item input[type="checkbox"] {
+  -webkit-appearance:none; appearance:none;
+  width:1rem; height:1rem;
+  border:2px solid #666; border-radius:50%;
+  position:relative; cursor:pointer;
+}
+.todo-item input[type="checkbox"]:checked {
+  background-color:#2563eb; border-color:#2563eb;
+}
+.todo-item input[type="checkbox"]:checked::after {
+  content:''; position:absolute; top:2px; left:5px;
+  width:3px; height:6px; border:solid white;
+  border-width:0 2px 2px 0; transform:rotate(45deg);
+}
+
+/* Editing & text */
+.title-container span {
+  cursor:pointer; color:#222;
+}
+.completed {
+  text-decoration:line-through; color:#888;
+}
+
+/* Completed toggle */
+.completed-header {
+  display:flex; justify-content:space-between;
+  padding-top:1rem; border-top:1px solid #ddd;
+  cursor:pointer; font-weight:bold; color:#333;
+}
+.caret { font-size:.8rem; }
+
+/* Completed list */
+.completed-list .completed-item {
+  display:flex; align-items:center; gap:.5rem; margin-top:.5rem;
+}
+.completed-item input[type="checkbox"] {
+  /* same styling as above */
+  -webkit-appearance:none; appearance:none;
+  width:1rem; height:1rem;
+  border:2px solid #666; border-radius:50%;
+  position:relative; cursor:default;
+  background-color:#2563eb; border-color:#2563eb;
+}
+.completed-text {
+  color:#555; text-decoration:line-through;
+}
+
+/* Fade anim */
+.fade-enter-active, .fade-leave-active { transition:opacity 1s }
+.fade-enter-from, .fade-leave-to { opacity:0 }
 </style>
