@@ -1,7 +1,5 @@
 # ToDo Application
 
-This repository contains a To-Do application:
-
 Backend: ASP.NET Core Web API (C#), Entity Framework Core with SQLite
 
 Frontend: Vue 3 + Vite, Axios for HTTP requests, Lodash.debounce for search optimization
@@ -31,7 +29,7 @@ By default, the API listens on http://localhost:5141
 
 1. Open a new terminal and navigate to the UI folder:
 ```bash
-cd ../todo-ui
+cd todo-ui
 ```
 
 2. Install dependencies:
@@ -51,7 +49,7 @@ Make sure the backend is running before using the UI.
 
 # Approach
 
-I wanted to build a to‑do app that felt responsive and intuitive. On the backend, I used a simple factory pattern so that it’s easy to switch between in‑memory storage and SQLite via EF Core by changing just an HTTP header. On the frontend, I set up a debounced search to avoid flooding the server and added inline editing where you can click any task, change its title and then press Enter or click away to save.
+I made a to‑do application that is responsive and intuitive. On the backend, I used a simple factory pattern so that it’s easy to switch between in‑memory storage and SQLite via EF Core by changing just an HTTP header. On the frontend, I set up a debounced search to avoid flooding the server and added inline editing where you can click any task, change its title and then press Enter or click away to save.
 
 I also added a completed‑tasks feature where as soon as you check a box, the task smoothly moves down into a "Completed" section. If you change your mind, simply uncheck it and it returns to your pending list. To make sure completed tasks persist across reloads they’re stored in localStorage.
 
