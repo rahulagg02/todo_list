@@ -64,7 +64,11 @@ I also added a completed‑tasks feature where as soon as you check a box, the t
 # Resources
 
 https://www.geeksforgeeks.org/vue-js/#
+
 https://learn.microsoft.com/en-us/ef/core/
+
 https://learn.microsoft.com/en-us/aspnet/core/fundamentals/apis?view=aspnetcore-9.0
+
 Axios GitHub
+
 Lodash Debounce
