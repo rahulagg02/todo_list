@@ -25,7 +25,7 @@ builder.Services.AddDbContext<TodoDbContext>(opts =>
 builder.Services.AddSingleton<InMemoryTodoProvider>();
 builder.Services.AddScoped<EfCoreTodoProvider>();
 
-// Factory delegate: pick provider by key
+// Register factory for switching providers
 builder.Services.AddScoped<Func<string, ITodoProvider>>(sp => key =>
   key == "EfCore"
     ? sp.GetRequiredService<EfCoreTodoProvider>()

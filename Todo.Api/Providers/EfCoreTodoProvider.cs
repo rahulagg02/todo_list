@@ -7,6 +7,7 @@ using Todo.Api.Models;
 
 namespace Todo.Api.Providers
 {
+    // EF Core implementation of ITodoProvider using SQLite
     public class EfCoreTodoProvider : ITodoProvider
     {
         private readonly TodoDbContext _db;

@@ -6,6 +6,7 @@ using Todo.Api.Models;
 
 namespace Todo.Api.Providers
 {
+    // In-memory implementation of ITodoProvider
     public interface ITodoProvider
     {
         Task<IEnumerable<TodoItem>> GetAll(string search = null);

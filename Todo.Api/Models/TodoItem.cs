@@ -1,6 +1,5 @@
-// Todo.Api/Models/TodoItem.cs
 using System;
-
+// Represents a single to-do item
 namespace Todo.Api.Models
 {
     public class TodoItem
