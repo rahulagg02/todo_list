@@ -1,4 +1,10 @@
-# ToDo-List
+# ToDo Application
+
+This repository contains a To-Do application:
+
+Backend: ASP.NET Core Web API (C#), Entity Framework Core with SQLite
+
+Frontend: Vue 3 + Vite, Axios for HTTP requests, Lodash.debounce for search optimization
 
 
 # Running the Backend
@@ -42,4 +48,18 @@ npm run dev
 The UI will be available at http://localhost:5173
 
 Make sure the backend is running before using the UI.
+
+# Approach
+
+I wanted to build a to‑do app that felt responsive and intuitive. On the backend, I used a simple factory pattern so that it’s easy to switch between in‑memory storage and SQLite via EF Core by changing just an HTTP header. On the frontend, I set up a debounced search to avoid flooding the server and added inline editing where you can click any task, change its title and then press Enter or click away to save.
+
+I also added a completed‑tasks feature where as soon as you check a box, the task smoothly moves down into a "Completed" section. If you change your mind, simply uncheck it and it returns to your pending list. To make sure completed tasks persist across reloads they’re stored in localStorage.
+
+# Challenges
+
+1. Making the provider switch feel instant without UI flicker involved juggling cached data and temporarily pausing animations.
+
+2. Getting inline edit inputs to autofocus reliably meant coordinating Vue’s reactive updates with nextTick() so the input element is actually in the DOM before calling .focus().
+
+3. Keeping completed tasks in sync required careful handling of local and server state, moving items between lists, deleting and restoring them also persisting the completed list separately from the API.
 
