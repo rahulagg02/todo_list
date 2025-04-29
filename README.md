@@ -23,7 +23,7 @@ dotnet ef database update
 ```bash
 dotnet run
 ```
-By default, the API listens on http://localhost:5141
+By default, the API listens on [http://localhost:5141](http://localhost:5141/api/todos)
 
 # Running the Frontend
 
