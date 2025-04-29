@@ -1,7 +1,5 @@
 # ToDo-List
 
-git clone <YOUR_REPO_URL>
-cd allocore_project
 
 # Running the Backend
 
@@ -21,7 +19,7 @@ dotnet ef database update
 ```bash
 dotnet run
 ```
-By default, the API listens on http://localhost:5141.
+By default, the API listens on http://localhost:5141
 
 # Running the Frontend
 
@@ -41,7 +39,7 @@ npm install
 npm run dev
 ```
 
-The UI will be available at http://localhost:5173.
+The UI will be available at http://localhost:5173
 
 Make sure the backend is running before using the UI.
 
