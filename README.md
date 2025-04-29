@@ -61,3 +61,10 @@ I also added a completed‑tasks feature where as soon as you check a box, the t
 
 3. Keeping completed tasks in sync required careful handling of local and server state, moving items between lists, deleting and restoring them also persisting the completed list separately from the API.
 
+# Resources
+
+https://www.geeksforgeeks.org/vue-js/#
+https://learn.microsoft.com/en-us/ef/core/
+https://learn.microsoft.com/en-us/aspnet/core/fundamentals/apis?view=aspnetcore-9.0
+Axios GitHub
+Lodash Debounce
