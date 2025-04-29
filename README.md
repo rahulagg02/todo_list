@@ -19,7 +19,7 @@ dotnet restore
 dotnet tool install --global dotnet-ef  
 dotnet ef database update
 ```
-3.Run the API:
+3. Run the API:
 ```bash
 dotnet run
 ```
