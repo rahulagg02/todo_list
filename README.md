@@ -1,4 +1,4 @@
-# ToDo Application
+# Vue + .NET Core To-Do App with Dynamic Factory Selection
 
 Backend: ASP.NET Core Web API (C#), Entity Framework Core with SQLite
 
